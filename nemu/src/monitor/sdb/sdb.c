@@ -18,6 +18,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
+#include <memory/vaddr.h>
 
 static int is_batch_mode = false;
 
@@ -54,6 +55,68 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+static int cmd_si(char *args) {
+  uint64_t step;
+
+  if (args == NULL)
+    step = 1;
+  else
+    step = (uint64_t)atoll(args);
+
+  cpu_exec(step);
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  // skip leading blanks
+  args = strtok(args, " ");
+  if (args == NULL) {
+    printf("Use \"info r\" to print reg state\n");
+    return 0;
+  }
+
+  if (strcmp(args, "r") == 0)
+    isa_reg_display();
+  else
+    printf("unknown option %s\n", args);
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  int count;
+  vaddr_t addr;
+
+  // skip leading blanks
+  args = strtok(args, " ");
+
+  if (args == NULL) {
+    printf("Use \"x N EXPR\" to output N consecutive 4 bytes in hex, EXPR is the starting memory addr\n");
+    return 0;
+  }
+
+  count = atoi(args);
+
+  args = strtok(NULL, " ");
+
+  if (args == NULL) {
+    printf("Use \"x N EXPR\" to output N consecutive 4 bytes in hex, EXPR is the starting memory addr\n");
+    return 0;
+  }
+  addr = (vaddr_t)strtol(args, NULL, 16);
+
+  for (int i = 0; i < count; i++) {
+    if (i%4 == 0)
+      printf(FMT_PADDR ":\t", addr + i*4);
+    printf("0x%08x\t", vaddr_read(addr + i*4, 4));
+    if (i%4 == 3)
+      printf("\n");
+  }
+
+  if (count%4 != 0)
+    printf("\n");
+  return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -66,7 +129,9 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
-
+  { "si", "Executing N instructions. Default N is 1.", cmd_si },
+  { "info", "Use \"info r\" to print reg state", cmd_info },
+  { "x", "Use \"x N EXPR\" to output N consecutive 4 bytes in hex, EXPR is the starting memory addr", cmd_x },
 };
 
 #define NR_CMD ARRLEN(cmd_table)
