@@ -19,12 +19,13 @@
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
+#include <memory.h>
 
 enum {
   TK_NOTYPE = 256, TK_EQ,
 
   /* TODO: Add more token types */
-
+  TK_HEX, TK_DEM, TK_REG,
 };
 
 static struct rule {
@@ -39,6 +40,14 @@ static struct rule {
   {" +", TK_NOTYPE},    // spaces
   {"\\+", '+'},         // plus
   {"==", TK_EQ},        // equal
+  {"\\-", '-'},         // sub
+  {"\\*", '*'},         // multiply
+  {"/", '/'},           // div
+  {"\\(", '('},           // left parenthesis
+  {"\\)", ')'},           // right parenthesis
+  {"0x[0-9]+", TK_HEX}, // hex
+  {"[0-9]+", TK_DEM},   // demical
+  {"\\$[a-z][a-z]", TK_REG},  // reg
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -95,7 +104,14 @@ static bool make_token(char *e) {
          */
 
         switch (rules[i].token_type) {
-          default: TODO();
+          case TK_NOTYPE: break;
+          case TK_DEM: case TK_HEX: case TK_REG:
+            if (substr_len > 20) {
+              printf("too big number from %s\n", substr_start);
+              return false;
+            }
+            memcpy(tokens[nr_token].str, substr_start, substr_len);
+          default: tokens[nr_token].type = rules[i].token_type; nr_token++;
         }
 
         break;
