@@ -20,6 +20,7 @@
  */
 #include <regex.h>
 #include <memory.h>
+#include <stdlib.h>
 
 enum {
   TK_NOTYPE = 256, TK_EQ,
@@ -47,7 +48,7 @@ static struct rule {
   {"\\)", ')'},           // right parenthesis
   {"0x[0-9]+", TK_HEX}, // hex
   {"[0-9]+", TK_DEM},   // demical
-  {"\\$[a-z][a-z]", TK_REG},  // reg
+  {"\\$[a-z0-9]+", TK_REG},  // reg
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -111,6 +112,7 @@ static bool make_token(char *e) {
               return false;
             }
             memcpy(tokens[nr_token].str, substr_start, substr_len);
+            tokens[nr_token].str[substr_len] = '\0';
           default: tokens[nr_token].type = rules[i].token_type; nr_token++;
         }
 
@@ -127,6 +129,125 @@ static bool make_token(char *e) {
   return true;
 }
 
+static bool eval_success;
+
+static inline bool is_parentheses_valid() {
+  int stack = 0;
+
+  for (int i = 0; i < nr_token; i++) {
+    if (tokens[i].type == '(')
+      stack ++;
+    else if (tokens[i].type == ')')
+      stack --;
+    if (stack < 0)
+      return false;
+  }
+
+  if (stack != 0)
+    return false;
+
+  return true;
+}
+
+// assume that: 1. begin < end 2. parentheses valid
+static inline bool check_parentheses(int begin, int end) {
+  int stack = 0;
+
+  if ((tokens[begin].type == '(') && (tokens[end].type == ')')) {
+    for (int i = begin + 1; i < end; i++) {
+      if (tokens[i].type == '(')
+        stack ++;
+      else if (tokens[i].type == ')')
+        stack --;
+      if (stack < 0)
+        return false;
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+static int find_main_op(int begin, int end) {
+  int stack = 0, mul_div = -1;
+
+  for (int i = begin; i < end; i++) {
+    if (tokens[i].type == '(')
+      stack ++;
+    else if (tokens[i].type == ')')
+      stack --;
+
+    if (stack == 0) {
+      switch (tokens[i].type)
+      {
+      case '+':case '-':
+        return i;
+      case '*':case '/':
+        if (mul_div == -1)
+          mul_div = i;
+      }
+    }
+  }
+
+  return mul_div;
+}
+
+static word_t eval(int begin, int end) {
+  if (begin > end) {
+    /* Bad expression */
+    goto _error;
+  }
+  else if (begin == end) {
+    /* Single token.
+     * For now this token should be a number.
+     * Return the value of the number.
+     */
+    if (tokens[begin].type == TK_DEM)
+      return (word_t)strtol(tokens[begin].str, NULL, 10);
+    if (tokens[begin].type == TK_HEX)
+      return (word_t)strtol(tokens[begin].str, NULL, 16);
+    if (tokens[begin].type == TK_REG) {
+      bool reg_valid;
+      word_t ret;
+      ret = isa_reg_str2val(&tokens[begin].str[1], &reg_valid);
+      if (reg_valid)
+        return ret;
+      else
+        goto _error;
+    }
+  }
+  else if (check_parentheses(begin, end) == true) {
+    /* The expression is surrounded by a matched pair of parentheses.
+     * If that is the case, just throw away the parentheses.
+     */
+    return eval(begin + 1, end - 1);
+  }
+  else {
+    /* We should do more things here. */
+    int main_op = find_main_op(begin, end);
+    if (main_op < 0)
+      goto _error;
+
+    switch (tokens[main_op].type)
+    {
+    case '+': return eval(begin, main_op - 1) + eval(main_op + 1, end);
+    case '-': return eval(begin, main_op - 1) - eval(main_op + 1, end);
+    case '*': return eval(begin, main_op - 1) * eval(main_op + 1, end);
+    case '/':
+      if (eval(main_op + 1, end) == 0) {
+        printf("invalid expr: divide 0\n");
+        goto _error;
+      }
+      return eval(begin, main_op - 1) / eval(main_op + 1, end);
+    default: printf("invalid expr: can't find main op\n"); goto _error;
+    }
+  }
+
+_error:
+  eval_success = false;
+  return 0;
+}
 
 word_t expr(char *e, bool *success) {
   if (!make_token(e)) {
@@ -135,7 +256,15 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  TODO();
+  eval_success = true;
+  if (is_parentheses_valid() == false) {
+    printf("invalid parentheses\n");
+    *success = false;
+    return 0;
+  }
 
-  return 0;
+  word_t val = eval(0, nr_token - 1);
+  *success = eval_success;
+
+  return val;
 }

@@ -117,6 +117,21 @@ static int cmd_x(char *args) {
   return 0;
 }
 
+static int cmd_p(char *args) {
+  if (args == NULL)
+    return 0;
+
+  bool success;
+  word_t val = expr(args, &success);
+
+  if (success)
+    printf(FMT_WORD "\t" FMT_WORD_D "\n", val, val);
+  else
+    printf("calculate failed\n");
+
+  return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -132,6 +147,7 @@ static struct {
   { "si", "Executing N instructions. Default N is 1.", cmd_si },
   { "info", "Use \"info r\" to print reg state", cmd_info },
   { "x", "Use \"x N EXPR\" to output N consecutive 4 bytes in hex, EXPR is the starting memory addr", cmd_x },
+  { "p", "Use \"p EXPR\" to output value of EXPR", cmd_p },
 };
 
 #define NR_CMD ARRLEN(cmd_table)
