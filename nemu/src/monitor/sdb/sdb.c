@@ -102,7 +102,14 @@ static int cmd_x(char *args) {
     printf("Use \"x N EXPR\" to output N consecutive 4 bytes in hex, EXPR is the starting memory addr\n");
     return 0;
   }
-  addr = (vaddr_t)strtol(args, NULL, 16);
+
+  bool success;
+  addr = expr(args, &success);
+
+  if (!success) {
+    printf("invalid expr!\n");
+    return 0;
+  }
 
   for (int i = 0; i < count; i++) {
     if (i%4 == 0)
