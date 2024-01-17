@@ -13,7 +13,18 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#ifndef TEST_EXPR
 #include <isa.h>
+#else
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <assert.h>
+typedef uint32_t word_t;
+#define ARRLEN(arr) (int)(sizeof(arr) / sizeof(arr[0]))
+#define panic(...) assert(0)
+#define Log(...)
+#endif
 
 /* We use the POSIX regex functions to process regular expressions.
  * Type 'man regex' for more information about POSIX regex functions.
@@ -46,7 +57,7 @@ static struct rule {
   {"/", '/'},           // div
   {"\\(", '('},           // left parenthesis
   {"\\)", ')'},           // right parenthesis
-  {"0x[0-9]+", TK_HEX}, // hex
+  {"0x[0-9a-f]+", TK_HEX}, // hex
   {"[0-9]+", TK_DEM},   // demical
   {"\\$[a-z0-9]+", TK_REG},  // reg
 };
@@ -103,7 +114,10 @@ static bool make_token(char *e) {
          * to record the token in the array `tokens'. For certain types
          * of tokens, some extra actions should be performed.
          */
-
+        if (rules[i].token_type != TK_NOTYPE && nr_token >= ARRLEN(tokens)) {
+          printf("can't contain more tokens\n");
+          return false;
+        }
         switch (rules[i].token_type) {
           case TK_NOTYPE: break;
           case TK_DEM: case TK_HEX: case TK_REG:
@@ -135,16 +149,20 @@ static inline bool is_parentheses_valid() {
   int stack = 0;
 
   for (int i = 0; i < nr_token; i++) {
-    if (tokens[i].type == '(')
+    if (tokens[i].type == '(') {
       stack ++;
-    else if (tokens[i].type == ')')
+    } else if (tokens[i].type == ')') {
       stack --;
-    if (stack < 0)
+    }
+
+    if (stack < 0) {
       return false;
+    }
   }
 
-  if (stack != 0)
+  if (stack != 0){
     return false;
+  }
 
   return true;
 }
@@ -207,6 +225,7 @@ static word_t eval(int begin, int end) {
       return (word_t)strtol(tokens[begin].str, NULL, 10);
     if (tokens[begin].type == TK_HEX)
       return (word_t)strtol(tokens[begin].str, NULL, 16);
+#ifndef TEST_EXPR
     if (tokens[begin].type == TK_REG) {
       bool reg_valid;
       word_t ret;
@@ -216,6 +235,7 @@ static word_t eval(int begin, int end) {
       else
         goto _error;
     }
+#endif
   }
   else if (check_parentheses(begin, end) == true) {
     /* The expression is surrounded by a matched pair of parentheses.

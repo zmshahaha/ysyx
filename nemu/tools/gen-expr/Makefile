@@ -16,3 +16,6 @@
 NAME = gen-expr
 SRCS = gen-expr.c
 include $(NEMU_HOME)/scripts/build.mk
+
+test-expr: test-expr.c ../../src/monitor/sdb/expr.c
+	gcc ../../src/monitor/sdb/expr.c test-expr.c -g -DTEST_EXPR -o build/test-expr
