@@ -94,6 +94,7 @@ typedef struct token {
 static Token tokens[32] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
+// e must contain a string, it can't be NULL
 static bool make_token(char *e) {
   int position = 0;
   int i;
@@ -300,7 +301,7 @@ _error:
 }
 
 word_t expr(char *e, bool *success) {
-  if (!make_token(e)) {
+  if (e == NULL || !make_token(e)) {
     *success = false;
     return 0;
   }

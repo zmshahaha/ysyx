@@ -125,9 +125,6 @@ static int cmd_x(char *args) {
 }
 
 static int cmd_p(char *args) {
-  if (args == NULL)
-    return 0;
-
   bool success;
   word_t val = expr(args, &success);
 
