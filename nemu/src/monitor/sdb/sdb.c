@@ -77,6 +77,8 @@ static int cmd_info(char *args) {
 
   if (strcmp(args, "r") == 0)
     isa_reg_display();
+  else if (strcmp(args, "w") == 0)
+    print_all_wp();
   else
     printf("unknown option %s\n", args);
   return 0;
@@ -136,6 +138,16 @@ static int cmd_p(char *args) {
   return 0;
 }
 
+static int cmd_w(char *args){
+  new_wp(args);
+  return 0;
+}
+
+static int cmd_d(char *args){
+  free_wp(atoi(args));
+  return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -149,9 +161,12 @@ static struct {
 
   /* TODO: Add more commands */
   { "si", "Executing N instructions. Default N is 1.", cmd_si },
-  { "info", "Use \"info r\" to print reg state", cmd_info },
+  { "info", "Use \"info r\" to display reg state\n"
+            "\tUse \"info w\" to display watchpoint state", cmd_info },
   { "x", "Use \"x N EXPR\" to output N consecutive 4 bytes in hex, EXPR is the starting memory addr", cmd_x },
   { "p", "Use \"p EXPR\" to output value of EXPR", cmd_p },
+  { "w", "Use \"w EXPR\" to add EXPR as watchpoint", cmd_w },
+  { "d", "Use \"d N\"nto delete watchpoint N", cmd_d },
 };
 
 #define NR_CMD ARRLEN(cmd_table)
