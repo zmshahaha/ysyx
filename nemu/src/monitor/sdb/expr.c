@@ -15,6 +15,7 @@
 
 #ifndef TEST_EXPR
 #include <isa.h>
+#include <memory/vaddr.h>
 #else
 #include <stdbool.h>
 #include <stdint.h>
@@ -37,7 +38,7 @@ enum {
   TK_NOTYPE = 256, TK_EQ,
 
   /* TODO: Add more token types */
-  TK_HEX, TK_DEM, TK_REG,
+  TK_NEQ, TK_AND, TK_DEM, TK_HEX, TK_REG, TK_DEREF,
 };
 
 static struct rule {
@@ -48,18 +49,20 @@ static struct rule {
   /* TODO: Add more rules.
    * Pay attention to the precedence level of different rules.
    */
-
-  {" +", TK_NOTYPE},    // spaces
-  {"\\+", '+'},         // plus
-  {"==", TK_EQ},        // equal
-  {"\\-", '-'},         // sub
-  {"\\*", '*'},         // multiply
-  {"/", '/'},           // div
-  {"\\(", '('},           // left parenthesis
-  {"\\)", ')'},           // right parenthesis
-  {"0x[0-9a-f]+", TK_HEX}, // hex
-  {"[0-9]+", TK_DEM},   // demical
-  {"\\$[a-z0-9]+", TK_REG},  // reg
+  {" +", TK_NOTYPE},          // spaces
+  {"==", TK_EQ},              // 257
+  {"!=", TK_NEQ},            // 258
+  {"&&", TK_AND},             // 259
+  {"\\+", '+'},               // 40
+  {"\\-", '-'},               // 45
+  {"\\*", '*'},               // 42
+  {"\\/", '/'},               // 47
+  {"\\(", '('},               // 40
+  {"\\)", ')'},               // 41
+  {"0x[0-9a-f]+", TK_HEX},    // 261
+  {"[0-9]+", TK_DEM},         // 260
+  {"\\$[$a-z0-9]+", TK_REG},  // 262
+  {"\\*", TK_DEREF},          // 263 it won't be evaled, just for notion
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -188,27 +191,49 @@ static inline bool check_parentheses(int begin, int end) {
 }
 
 static int find_main_op(int begin, int end) {
-  int stack = 0, mul_div = -1;
+  int stack = 0, eq_neq = -1, add_min = -1, mul_div = -1, deref = -1;
 
   for (int i = begin; i < end; i++) {
-    if (tokens[i].type == '(')
+    if (tokens[i].type == '(') {
       stack ++;
-    else if (tokens[i].type == ')')
+      continue;
+    } else if (tokens[i].type == ')') {
       stack --;
+      continue;
+    }
 
     if (stack == 0) {
       switch (tokens[i].type)
       {
-      case '+':case '-':
+      // priority low to high
+      case TK_AND:
         return i;
+      case TK_EQ: case TK_NEQ:
+        if (eq_neq == -1)
+          eq_neq = i;
+      case '+':case '-':
+        if (add_min == -1)
+          add_min = i;
       case '*':case '/':
         if (mul_div == -1)
           mul_div = i;
+      case TK_DEREF:
+        if (deref == -1)
+          deref = i;
       }
     }
   }
 
-  return mul_div;
+  if (eq_neq != -1)
+    return eq_neq;
+
+  if (add_min != -1)
+    return add_min;
+
+  if (mul_div != -1)
+    return mul_div;
+
+  return deref;
 }
 
 static word_t eval(int begin, int end) {
@@ -249,18 +274,23 @@ static word_t eval(int begin, int end) {
     if (main_op < 0)
       goto _error;
 
-    switch (tokens[main_op].type)
-    {
-    case '+': return eval(begin, main_op - 1) + eval(main_op + 1, end);
-    case '-': return eval(begin, main_op - 1) - eval(main_op + 1, end);
-    case '*': return eval(begin, main_op - 1) * eval(main_op + 1, end);
-    case '/':
-      if (eval(main_op + 1, end) == 0) {
-        printf("invalid expr: divide 0\n");
-        goto _error;
-      }
-      return eval(begin, main_op - 1) / eval(main_op + 1, end);
-    default: printf("invalid expr: can't find main op\n"); goto _error;
+    switch (tokens[main_op].type) {
+      case '+': return eval(begin, main_op - 1) + eval(main_op + 1, end);
+      case '-': return eval(begin, main_op - 1) - eval(main_op + 1, end);
+      case '*': return eval(begin, main_op - 1) * eval(main_op + 1, end);
+      case '/':
+        if (eval(main_op + 1, end) == 0) {
+          printf("invalid expr: divide 0\n");
+          goto _error;
+        }
+        return eval(begin, main_op - 1) / eval(main_op + 1, end);
+      case TK_AND: return eval(begin, main_op - 1) && eval(main_op + 1, end);
+      case TK_EQ: return eval(begin, main_op - 1) == eval(main_op + 1, end);
+      case TK_NEQ: return eval(begin, main_op - 1) != eval(main_op + 1, end);
+#ifndef TEST_EXPR
+      case TK_DEREF: return vaddr_read(eval(main_op + 1, end), sizeof(word_t));
+#endif
+      default: printf("invalid expr: can't find main op\n"); goto _error;
     }
   }
 
@@ -281,6 +311,12 @@ word_t expr(char *e, bool *success) {
     printf("invalid parentheses\n");
     *success = false;
     return 0;
+  }
+
+  for (int i = 0; i < nr_token; i ++) {
+    if (tokens[i].type == '*' && (i == 0 ||
+        (tokens[i - 1].type != ')' && tokens[i - 1].type != TK_DEM && tokens[i - 1].type != TK_HEX && tokens[i - 1].type != TK_REG)))
+      tokens[i].type = TK_DEREF;
   }
 
   word_t val = eval(0, nr_token - 1);
