@@ -38,12 +38,13 @@
 typedef MUXDEF(CONFIG_ISA64, uint64_t, uint32_t) word_t;
 typedef MUXDEF(CONFIG_ISA64, int64_t, int32_t)  sword_t;
 #define FMT_WORD MUXDEF(CONFIG_ISA64, "0x%016" PRIx64, "0x%08" PRIx32)
-#define FMT_WORD_D MUXDEF(CONFIG_ISA64, "%" __PRI64_PREFIX PRId64, "%" PRId32)
+#define FMT_WORD_D MUXDEF(CONFIG_ISA64, "%" PRId64, "%" PRId32)
 
+// vaddr is word type, paddr is according to mem range
 typedef word_t vaddr_t;
 typedef MUXDEF(PMEM64, uint64_t, uint32_t) paddr_t;
 #define FMT_PADDR MUXDEF(PMEM64, "0x%016" PRIx64, "0x%08" PRIx32)
-#define FMT_PADDR_D MUXDEF(PMEM64, "%" __PRI64_PREFIX PRId64, "%" PRId32)
+#define FMT_PADDR_D MUXDEF(PMEM64, "%" PRId64, "%" PRId32)
 typedef uint16_t ioaddr_t;
 
 #include <debug.h>

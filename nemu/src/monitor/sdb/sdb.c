@@ -115,8 +115,8 @@ static int cmd_x(char *args) {
 
   for (int i = 0; i < count; i++) {
     if (i%4 == 0)
-      printf(FMT_PADDR ":\t", addr + i*4);
-    printf("0x%08x\t", vaddr_read(addr + i*4, 4));
+      printf(FMT_WORD ":\t", addr + i*4);
+    printf("0x%08x\t", (uint32_t)vaddr_read(addr + i*4, 4));
     if (i%4 == 3)
       printf("\n");
   }
