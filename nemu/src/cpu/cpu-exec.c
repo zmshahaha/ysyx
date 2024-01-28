@@ -32,6 +32,26 @@ static bool g_print_step = false;
 
 void device_update();
 
+#ifdef CONFIG_ITRACE
+#define IRINGBUF_SIZE 16
+static char iringbuf[IRINGBUF_SIZE][128];
+static int ptr_iringbuf = 0;
+
+static void print_iringbuf() {
+  int error_point = (ptr_iringbuf == 0) ? IRINGBUF_SIZE - 1 : ptr_iringbuf - 1;
+
+  printf("instr executed before crashed:\n");
+  for (int i = ptr_iringbuf; i != error_point; ) {
+    if (iringbuf[i][0] != '\0')
+      printf("   %s\n", iringbuf[i]);
+    (i == IRINGBUF_SIZE - 1) ? i = 0 : ++i;
+  }
+
+  if(iringbuf[error_point][0]!='\0')
+    printf("-->%s\n", iringbuf[error_point]);
+}
+#endif
+
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
@@ -43,7 +63,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   extern bool check_all_wp(void);
   if (check_all_wp() == true) {
     nemu_state.state = NEMU_STOP;
-    printf("after pc: " FMT_WORD " executed\n",_this->pc);
+    printf("after pc: " FMT_WORD " executed\n", _this->pc);
   }
 }
 
@@ -75,6 +95,10 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #else
   p[0] = '\0'; // the upstream llvm does not support loongarch32r
 #endif
+
+  // write to iringbuf
+  memcpy(iringbuf[ptr_iringbuf], s->logbuf, 128);
+  (ptr_iringbuf == IRINGBUF_SIZE-1) ?  ptr_iringbuf = 0 : ++ptr_iringbuf;
 #endif
 }
 
@@ -124,6 +148,10 @@ void cpu_exec(uint64_t n) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
     case NEMU_END: case NEMU_ABORT:
+    #ifdef CONFIG_ITRACE
+      if(nemu_state.halt_ret != 0 || nemu_state.state == NEMU_ABORT)
+        print_iringbuf();
+    #endif
       Log("nemu: %s at pc = " FMT_WORD " with return code 0x%x",
           (nemu_state.state == NEMU_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
            (nemu_state.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
