@@ -18,3 +18,9 @@ CXXSRC = src/utils/disasm.cc
 CXXFLAGS += $(shell llvm-config --cxxflags) -fPIE
 LIBS += $(shell llvm-config --libs)
 endif
+
+ifeq ($(CONFIG_FTRACE),)
+SRCS-BLACKLIST-y += src/utils/ftrace.c
+else
+LIBS += -lelf
+endif
