@@ -147,6 +147,15 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
   INSTPAT_END();
 
+// trace call and return
+#ifdef CONFIG_FTRACE
+  INSTPAT_START(ftrace);
+  INSTPAT("0000000 00000 00001 000 00000 11001 11", ret    , I, print_ftrace(RET, s->dnpc); );  // jump to x1(ra) and no-link is ret (link to x0 is no-link)
+  INSTPAT("??????? ????? ????? 000 00001 11001 11", jalr   , I, print_ftrace(CALL, s->dnpc););  // different from jalr and jal before: only link to x1(ra)
+  INSTPAT("??????? ????? ????? ??? 00001 11011 11", jal    , J, print_ftrace(CALL, s->dnpc););
+  INSTPAT_END(ftrace);
+#endif
+
   R(0) = 0; // reset $zero to 0
 
   return 0;

@@ -131,7 +131,6 @@ void init_monitor(int argc, char *argv[]) {
 #ifdef CONFIG_FTRACE
   /* Initialize the function tracer. */
   if (func_trace_file) {
-    extern void init_ftrace(char*);
     init_ftrace(func_trace_file);
   }
 #endif

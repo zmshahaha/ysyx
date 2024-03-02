@@ -73,5 +73,13 @@ uint64_t get_time();
     log_write(__VA_ARGS__); \
   } while (0)
 
+#ifdef CONFIG_FTRACE
+// ----------- ftrace -----------
+
+enum { RET, CALL };
+void init_ftrace(char *);
+void print_ftrace(int op_type, word_t jump_to);
+
+#endif
 
 #endif
