@@ -66,3 +66,5 @@ int f0(int n, int l) {
 从f0到f3的过程虽然转移了控制权，但未发生函数调用。则可以出现main调用f0，但最后却是从f3返回到main。所以会有不匹配。
 
 tools/spike-diff/difftest.cc定义了一些函数如difftest_memcpy等
+
+捕捉死循环:两个时刻状态完全相同
