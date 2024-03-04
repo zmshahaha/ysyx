@@ -4,6 +4,7 @@
 #define KEYDOWN_MASK 0x8000
 
 void __am_input_keybrd(AM_INPUT_KEYBRD_T *kbd) {
-  kbd->keydown = 0;
-  kbd->keycode = AM_KEY_NONE;
+  uint32_t key_mem = inl(KBD_ADDR);
+  kbd->keycode = key_mem & ~KEYDOWN_MASK;     // without key_mask
+  kbd->keydown = (key_mem & KEYDOWN_MASK) ? false :true;  // false: release, true: press down
 }

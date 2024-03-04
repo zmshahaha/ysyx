@@ -68,3 +68,16 @@ int f0(int n, int l) {
 tools/spike-diff/difftest.cc定义了一些函数如difftest_memcpy等
 
 捕捉死循环:两个时刻状态完全相同
+
+设备框架原理：
+
+```c
+// CONFIG_RTC_MMIO是基地址
+// rtc_port_base是基地址对应的寄存器地址，访问CONFIG_RTC_MMIO就是访问rtc_port_base
+// rtc_io_handler是访问该地址操作，主要是操作rtc_port_base
+// am层对设备读写操作最后就是调用rtc_io_handler，操作rtc_port_base，然后写入或者返回
+// 更上层写的是am的抽象寄存器，又是另外一种
+add_mmio_map("rtc", CONFIG_RTC_MMIO, rtc_port_base, 8, rtc_io_handler);
+```
+
+键盘捕捉是在`device_update`进行
