@@ -18,9 +18,19 @@
 #include "../local-include/reg.h"
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
-  if (memcmp(ref_r, &cpu, sizeof(CPU_state)) == 0)
-    return true;
-  return false;
+  for (int i = 0; i < MUXDEF(CONFIG_RVE, 16, 32); ++i) {
+    if (ref_r->gpr[i] != cpu.gpr[i]) {
+      printf("ref: %s\t\t" FMT_WORD "\n", reg_name(i), ref_r->gpr[i]);
+      return false;
+    }
+  }
+
+  if (ref_r->pc != cpu.pc) {
+    printf("ref: pc\t\t" FMT_WORD "\n", ref_r->pc);
+    return false;
+  }
+
+  return true;
 }
 
 void isa_difftest_attach() {

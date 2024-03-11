@@ -17,6 +17,14 @@
 #define __RISCV_REG_H__
 
 #include <common.h>
+#include <isa-def.h>
+
+enum {
+  MSTATUS = 0x300,
+  MTVEC = 0x305,
+  MEPC = 0x341,
+  MCAUSE = 0x342,
+};
 
 static inline int check_reg_idx(int idx) {
   IFDEF(CONFIG_RT_CHECK, assert(idx >= 0 && idx < MUXDEF(CONFIG_RVE, 16, 32)));
@@ -25,9 +33,21 @@ static inline int check_reg_idx(int idx) {
 
 #define gpr(idx) (cpu.gpr[check_reg_idx(idx)])
 
+static inline int check_csr_idx(int idx) {
+  IFDEF(CONFIG_RT_CHECK, assert(idx >= 0 && idx < NR_RV_CSR));
+  return idx;
+}
+
+#define csr(idx) (cpu.csr[check_csr_idx(idx)])
+
 static inline const char* reg_name(int idx) {
-  extern const char* regs[];
+  extern const char *regs[];
   return regs[check_reg_idx(idx)];
+}
+
+static inline const char* csr_name(int idx) {
+  extern const char *csrs[];
+  return csrs[check_csr_idx(idx)];
 }
 
 #endif

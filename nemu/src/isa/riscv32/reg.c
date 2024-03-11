@@ -23,6 +23,13 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
+const char *csrs[NR_RV_CSR] = {
+  [MSTATUS] = "mstatus",
+  [MTVEC] = "mtvec",
+  [MEPC] = "mepc",
+  [MCAUSE] = "mcause",
+};
+
 void isa_reg_display() {
   for (int i = 0; i < sizeof(regs)/sizeof(regs[0]); i++) {
     printf("%s\t" FMT_WORD "\t" FMT_WORD_D "\n", reg_name(i), gpr(i), gpr(i));

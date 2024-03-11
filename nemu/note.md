@@ -81,3 +81,9 @@ add_mmio_map("rtc", CONFIG_RTC_MMIO, rtc_port_base, 8, rtc_io_handler);
 ```
 
 键盘捕捉是在`device_update`进行
+
+PA3
+
+操作系统需防止应用程序直接通过跳转执行，例如操作系统调用uboot行为
+
+思考为何一些中断状态由硬件保存？？
