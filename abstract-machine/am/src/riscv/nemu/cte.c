@@ -4,6 +4,7 @@
 
 /* according manual about MCAUSE csr */
 #define ECALL_FROM_M_MODE 11
+#define INTR_YIELD -1
 
 static Context* (*user_handler)(Event, Context*) = NULL;
 
@@ -11,7 +12,16 @@ Context* __am_irq_handle(Context *c) {
   if (user_handler) {
     Event ev = {0};
     switch (c->mcause) {
-      case ECALL_FROM_M_MODE: ev.event = EVENT_YIELD; c->mepc += 4; break;
+      case ECALL_FROM_M_MODE:
+        switch(c->GPR1) {
+          case INTR_YIELD:
+            ev.event = EVENT_YIELD;
+            break;
+          default:
+            ev.event = EVENT_SYSCALL;
+            break;
+        }
+        c->mepc += 4; break;
       default: ev.event = EVENT_ERROR; break;
     }
 
