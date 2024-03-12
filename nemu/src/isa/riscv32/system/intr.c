@@ -21,6 +21,10 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
    * Then return the address of the interrupt/exception vector.
    */
 
+#ifdef CONFIG_ETRACE
+  printf("exception " FMT_WORD " occurs at " FMT_WORD "\n", NO, epc);
+#endif
+
   csr(MEPC) = epc;
   csr(MCAUSE) = NO;
   return csr(MTVEC);
