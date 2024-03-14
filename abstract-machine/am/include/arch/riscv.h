@@ -13,6 +13,13 @@ struct Context {
   void *pdir;
 };
 
+/*
+ * GPR1: syscall number
+ * GPR2: 1st param
+ * GPR3: 2nd param
+ * GPR4: 3rd param
+ * GPRx: syscall return val
+ */
 #ifdef __riscv_e
 #define GPR1 gpr[15] // a5
 #else
@@ -22,6 +29,6 @@ struct Context {
 #define GPR2 gpr[0]
 #define GPR3 gpr[0]
 #define GPR4 gpr[0]
-#define GPRx gpr[0]
+#define GPRx gpr[10]
 
 #endif
