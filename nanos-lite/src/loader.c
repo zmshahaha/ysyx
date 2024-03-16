@@ -1,6 +1,7 @@
 #include <proc.h>
 #include <elf.h>
 #include <ramdisk.h>
+#include <fs.h>
 
 #ifdef __LP64__
 # define Elf_Ehdr Elf64_Ehdr
@@ -24,21 +25,28 @@
 
 static uintptr_t loader(PCB *pcb, const char *filename) {
   // read elf header
+  int fd = fs_open(filename, 0, 0);
   Elf_Ehdr eh;
-  ramdisk_read(&eh, 0, sizeof(Elf_Ehdr));
+
+  assert(fd >= 0);
+  fs_read(fd, &eh, sizeof(Elf_Ehdr));
   assert(*(uint32_t *)(eh.e_ident) == 0x464c457f); // convert to uint32 is little endian
   assert(eh.e_machine == EXPECT_TYPE);
 
   // load elf
   Elf_Phdr ph;
   for (int i = 0; i < eh.e_phnum; ++i) {
-    ramdisk_read(&ph, eh.e_phoff + i * eh.e_phentsize, eh.e_phentsize);
+    fs_lseek(fd, eh.e_phoff + i * eh.e_phentsize, SEEK_SET);
+    fs_read(fd, &ph, eh.e_phentsize);
     if (ph.p_type == PT_LOAD) {
-      ramdisk_read((void *)ph.p_vaddr, ph.p_offset, ph.p_filesz);
+      fs_lseek(fd, ph.p_offset, SEEK_SET);
+      fs_read(fd, (void *)ph.p_vaddr, ph.p_filesz);
       memset((void *)(ph.p_vaddr + ph.p_filesz), 0, ph.p_memsz - ph.p_filesz);
     }
   }
 
+  fs_lseek(fd, 0, SEEK_SET);
+  fs_close(fd);
   // return to begin addr (.text)
   return eh.e_entry;
 }
