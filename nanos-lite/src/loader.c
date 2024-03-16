@@ -1,5 +1,6 @@
 #include <proc.h>
 #include <elf.h>
+#include <ramdisk.h>
 
 #ifdef __LP64__
 # define Elf_Ehdr Elf64_Ehdr
@@ -20,8 +21,6 @@
 #else
 # error Unsupported ISA
 #endif
-
-extern size_t ramdisk_read(void *buf, size_t offset, size_t len);
 
 static uintptr_t loader(PCB *pcb, const char *filename) {
   // read elf header
