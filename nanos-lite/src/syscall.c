@@ -23,7 +23,8 @@ void do_syscall(Context *c) {
   switch (a[0]) {
     case SYS_exit: halt(0); break;
     case SYS_yield: yield(); c->GPRx = 0; break;
-    case SYS_write: char *cbuf = (char *)a[2]; for (uintptr_t i = 0; i < a[3]; i++) putch(*(cbuf + i));  break;
+    case SYS_write: char *cbuf = (char *)a[2]; for (uintptr_t i = 0; i < a[3]; i++) putch(*(cbuf + i)); c->GPRx = a[3]; break;
+    case SYS_brk: c->GPRx = 0; break;
     default: panic("Unhandled syscall ID = %d", a[0]);
   }
 }
