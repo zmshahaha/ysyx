@@ -2,6 +2,11 @@
 #include <fs.h>
 #include "syscall.h"
 
+struct timeval{
+  long tv_sec;
+  long tv_usec;
+};
+
 /*
  * GPR1: syscall number
  * GPR2: 1st param
@@ -38,6 +43,10 @@ void do_syscall(Context *c) {
     case SYS_lseek: c->GPRx = fs_lseek((int)a[1], (size_t)a[2], (int)a[3]); break;
     case SYS_close: c->GPRx = fs_close((int)a[1]); break;
     case SYS_brk: c->GPRx = 0; break;
+    case SYS_gettimeofday:
+      ((struct timeval *)c->GPR2)->tv_sec = (io_read(AM_TIMER_UPTIME).us / 1000000);
+      ((struct timeval *)c->GPR2)->tv_usec = (io_read(AM_TIMER_UPTIME).us % 1000000);
+      c->GPRx = 0; break;
     default: panic("Unhandled syscall ID = %d", a[0]);
   }
 }
