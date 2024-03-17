@@ -45,7 +45,13 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
 }
 
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
-  return NULL;
+  Context *context = (Context *)(kstack.end - sizeof(Context));
+  context->mepc = (uintptr_t)entry;
+  context->gpr[10] = (uintptr_t)arg; // a0
+  context->gpr[1] = (uintptr_t)NULL; // ra
+  // context->gpr[2] = (uintptr_t)context;
+  context->mcause = 0xa00001800; // corresponding to difftest
+  return context;
 }
 
 void yield() {

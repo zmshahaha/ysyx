@@ -110,3 +110,7 @@ register是啥意思
 
 TODO: 可以从宏获得名字，从而使调试的代码更好看。如lseek的SEEKEND可以直接打印
       使printf支持更多格式
+
+kcontext()要求内核线程不能从entry返回, 否则其行为是未定义的.因为entry是该线程第一个调用的函数
+
+// context->gpr[2] = (uintptr_t)context; 初始化context的sp是不用设置，因为上下文恢复是用__am_irq_handle返回值
