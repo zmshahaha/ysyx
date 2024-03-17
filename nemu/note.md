@@ -105,3 +105,8 @@ intptr_t _syscall_(intptr_t type, intptr_t a0, intptr_t a1, intptr_t a2) {
 ```
 
 register是啥意思
+
+
+
+TODO: 可以从宏获得名字，从而使调试的代码更好看。如lseek的SEEKEND可以直接打印
+      使printf支持更多格式

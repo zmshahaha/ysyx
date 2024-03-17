@@ -116,6 +116,18 @@ int fs_close(int fd) {
   return 0;
 }
 
+char *fd2fname(int fd) {
+  assert((fd >= 0) && (fd < FILE_NUM));
+
+  return file_table[fd].name;
+}
+
+size_t fd2foff(int fd) {
+  assert((fd >= 0) && (fd < FILE_NUM));
+
+  return file_table[fd].open_offset;
+}
+
 void init_fs() {
   // TODO: initialize the size of /dev/fb
 }

@@ -18,7 +18,15 @@ void do_syscall(Context *c) {
   a[3] = c->GPR4;
 
 #ifdef CONFIG_STRACE
-  Log("syscall %d with args 0x%x 0x%x 0x%x\n", a[0], a[1], a[2], a[3]);
+  Log("syscall %d with args 0x%x 0x%x 0x%x", a[0], a[1], a[2], a[3]);
+
+  switch (a[0]) {
+    case SYS_open: Log("opening %s", (char *)a[1]); break;
+    case SYS_read: Log("read file %s %d bytes, from offset %d", fd2fname((int)a[1]), (size_t)a[3], fd2foff((int)a[1])); break;
+    case SYS_write: Log("write file %s %d bytes, from offset %d", fd2fname((int)a[1]), (size_t)a[3], fd2foff((int)a[1])); break;
+    case SYS_lseek: Log("change file offset %s", fd2fname((int)a[1])); break;
+    case SYS_close: Log("close file %s", fd2fname((int)a[1])); break;
+  }
 #endif
 
   switch (a[0]) {
