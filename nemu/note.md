@@ -111,6 +111,12 @@ register是啥意思
 TODO: 可以从宏获得名字，从而使调试的代码更好看。如lseek的SEEKEND可以直接打印
       使printf支持更多格式
 
+pa4
+
 kcontext()要求内核线程不能从entry返回, 否则其行为是未定义的.因为entry是该线程第一个调用的函数
 
 // context->gpr[2] = (uintptr_t)context; 初始化context的sp是不用设置，因为上下文恢复是用__am_irq_handle返回值
+
+用户态程序context_uload，用户态调度的时候首先还是从内核栈上恢复上下文，然后跳到start时就设成用户栈了。所以ucontext时候就把GPRx设成用户栈,这是与kcontext不同的地方
+
+用户态程序也要使用内核栈，包括存context，存进入系统调用后的信息。需要了解如何控制sp在内核和用户态正确轮转。当前是初始context在内核栈，其余包括用户态系统调用后的context也是在用户栈

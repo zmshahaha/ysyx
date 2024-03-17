@@ -24,6 +24,4 @@ enum {
   SYS_gettimeofday
 };
 
-void do_syscall(Context *c);
-#define CONFIG_STRACE
 #endif

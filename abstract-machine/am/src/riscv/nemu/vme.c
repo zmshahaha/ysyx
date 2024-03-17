@@ -70,5 +70,11 @@ void map(AddrSpace *as, void *va, void *pa, int prot) {
 }
 
 Context *ucontext(AddrSpace *as, Area kstack, void *entry) {
-  return NULL;
+  Context *context = (Context *)(kstack.end - sizeof(Context));
+  context->mepc = (uintptr_t)entry;
+  context->gpr[1] = (uintptr_t)NULL; // ra
+  // context->gpr[2] = (uintptr_t)context;
+  context->mcause = 0xa00001800; // corresponding to difftest
+  context->GPRx = (uintptr_t)heap.end; // set stack
+  return context;
 }
