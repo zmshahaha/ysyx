@@ -24,6 +24,7 @@ enum {
   MTVEC = 0x305,
   MEPC = 0x341,
   MCAUSE = 0x342,
+  SATP = 0x180,
 };
 
 static inline int check_reg_idx(int idx) {

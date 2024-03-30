@@ -28,6 +28,7 @@ const char *csrs[NR_RV_CSR] = {
   [MTVEC] = "mtvec",
   [MEPC] = "mepc",
   [MCAUSE] = "mcause",
+  [SATP] = "satp",
 };
 
 void isa_reg_display() {
