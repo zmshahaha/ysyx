@@ -1,19 +1,29 @@
 #include <memory.h>
-
+// we can't use am's malloc/free because of alignment
+// am's malloc/free is used in am-kernels
 static void *pf = NULL;
-
-void* new_page(size_t nr_page) {
-  return NULL;
-}
 
 #ifdef HAS_VME
 static void* pg_alloc(int n) {
-  return NULL;
+  assert(pf);
+  assert(n % PGSIZE == 0);
+
+  void *ret = pf;
+
+  pf += n;
+
+  if (pf > heap.end) {
+    panic("NOMEM!!");
+  }
+  return ret;
 }
 #endif
 
+void* new_page(size_t nr_page) {
+  return pg_alloc(nr_page * PGSIZE);
+}
+
 void free_page(void *p) {
-  panic("not implement yet");
 }
 
 /* The brk() system call handler. */

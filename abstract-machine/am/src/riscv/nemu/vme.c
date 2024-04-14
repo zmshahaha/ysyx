@@ -66,7 +66,58 @@ void __am_switch(Context *c) {
   }
 }
 
+// shift a physical address to the right place for a PTE.
+#define PA2PTE(pa) ((((unsigned long)pa) >> 12) << 10)
+
+#define PTE2PA(pte) (((pte) >> 10) << 12)
+
+#define PTE_FLAGS(pte) ((pte) & 0x3FF)
+
+// extract the three 9-bit page table indices from a virtual address.
+#define PGSHIFT         12
+#define PXMASK          0x1FF // 9 bits
+#define PXSHIFT(level)  (PGSHIFT+(9*(level)))
+#define PX(level, va) ((((unsigned long) (va)) >> PXSHIFT(level)) & PXMASK)
+
+typedef unsigned long pte_t;
+typedef unsigned long *pagetable_t; // 512 PTEs
+
+static pte_t *walk(pagetable_t pagetable, unsigned long va, int alloc)
+{
+  for(int level = 2; level > 0; level--) {
+    pte_t *pte = &pagetable[PX(level, va)];
+    if(*pte & PTE_V) {
+      pagetable = (pagetable_t)PTE2PA(*pte);
+    } else {
+      if(!alloc || (pagetable = (pagetable_t)pgalloc_usr(PGSIZE)) == 0)
+        return 0;
+      memset(pagetable, 0, PGSIZE);
+      *pte = PA2PTE(pagetable) | PTE_V;
+    }
+  }
+  return &pagetable[PX(0, va)];
+}
+
 void map(AddrSpace *as, void *va, void *pa, int prot) {
+  /* in kernel aspace, va=pa, so as->ptr is also pagetable's va */
+  assert(as->ptr);
+
+  unsigned long vaddr = (unsigned long)va, paddr = (unsigned long)pa;
+  pte_t *pte = NULL;
+
+  if(((vaddr % PGSIZE) != 0) || ((paddr % PGSIZE) != 0))
+    panic("map: va/pa not aligned");
+
+  if((pte = walk((pagetable_t)as->ptr, vaddr, 1)) == 0)
+    panic("walk error");
+  if(*pte & PTE_V)
+    panic("mappages: remap");
+  *pte = PA2PTE(paddr) | prot | PTE_V;
+
+  if (va < as->area.start)
+    as->area.start = va;
+  if (va + PGSIZE < as->area.end)
+    as->area.end = va + PGSIZE;
 }
 
 Context *ucontext(AddrSpace *as, Area kstack, void *entry) {
