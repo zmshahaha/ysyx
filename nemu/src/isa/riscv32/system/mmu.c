@@ -54,13 +54,13 @@ union sv39_va
 
 union sv39_pa
 {
-  paddr_t pa;
+  unsigned long pa;
   struct {
-    paddr_t pg_offset: 12;
-    paddr_t ppn0     : 9; // physical page number
-    paddr_t ppn1     : 9;
-    paddr_t ppn2     : 26;
-    paddr_t reserved : 8;
+    unsigned long pg_offset: 12;
+    unsigned long ppn0     : 9; // physical page number
+    unsigned long ppn1     : 9;
+    unsigned long ppn2     : 26;
+    unsigned long reserved : 8;
   } sv39_pa;
 };
 
@@ -116,35 +116,27 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   int i = levels - 1;
 
   /* find leaf pte */
-  for(; ; i--) {
+  for(; i >= 0; i--) {
     switch (i) {
       case 0: pte.pte = paddr_read(a + va.sv39_va.vpn0 * pte_size, sizeof(word_t)); break;
       case 1: pte.pte = paddr_read(a + va.sv39_va.vpn1 * pte_size, sizeof(word_t)); break;
       case 2: pte.pte = paddr_read(a + va.sv39_va.vpn2 * pte_size, sizeof(word_t)); break;
       default: panic("invalid level"); break;
     }
+
     if ((pte.sv39_pte.v == 0) || ((pte.sv39_pte.r == 0) && (pte.sv39_pte.w == 1))) {
       panic("pte format error");   // page fault is not supported
     }
 
-    if ((pte.sv39_pte.r == 1)) {
-      break;
-    }
-
-    a = pte.sv39_pte.ppn0 + (pte.sv39_pte.ppn1 << 9) + (pte.sv39_pte.ppn2 << 18);
+    a = (pte.sv39_pte.ppn0 + (pte.sv39_pte.ppn1 << 9) + (pte.sv39_pte.ppn2 << 18)) << 12;
   }
+
+  assert(pte.sv39_pte.v == 1);
 
   /* leaf found. fill pa */
   pa.sv39_pa.pg_offset = va.sv39_va.pg_offset;
-  for (int j = 0; j < i; j++) {
-    switch (j) {
-      case 0: pa.sv39_pa.ppn0 = va.sv39_va.vpn0; break;
-      case 1: pa.sv39_pa.ppn1 = va.sv39_va.vpn1; break;
-      default: panic("invalid leaf page table level"); break;
-    }
-  }
 
-  for (int j = i; j < levels; j++) {
+  for (int j = 0; j < 3; j++) {
     switch (j) {
       case 0: pa.sv39_pa.ppn0 = pte.sv39_pte.ppn0; break;
       case 1: pa.sv39_pa.ppn1 = pte.sv39_pte.ppn1; break;
@@ -153,7 +145,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
     }
   }
 
-  return pa.pa;
+  return (paddr_t)pa.pa;
 #endif
 #ifdef CONFIG_RV32
 #endif
