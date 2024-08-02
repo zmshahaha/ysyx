@@ -40,8 +40,21 @@ static uintptr_t loader(PCB *pcb, const char *filename) {
     fs_read(fd, &ph, eh.e_phentsize);
     if (ph.p_type == PT_LOAD) {
       fs_lseek(fd, ph.p_offset, SEEK_SET);
-      fs_read(fd, (void *)ph.p_vaddr, ph.p_filesz);
-      memset((void *)(ph.p_vaddr + ph.p_filesz), 0, ph.p_memsz - ph.p_filesz);
+      void *load_addr = NULL;
+#ifdef HAS_VME
+      void *start = (void *)(ph.p_vaddr / PGSIZE * PGSIZE);
+      void *end = (void *)((ph.p_vaddr + ph.p_filesz + PGSIZE - 1) / PGSIZE * PGSIZE);
+      int pages = (end - start) / PGSIZE;
+      void *map_addr = new_page(pages);
+      load_addr = map_addr + (ph.p_vaddr - (uintptr_t)start);
+      for (int i = 0; i < pages; i++) {
+        map(&pcb->as, start + i*PGSIZE, map_addr + i*PGSIZE, MMAP_WRITE | MMAP_READ | MMAP_EXECUTE);
+      }
+#else
+      load_addr = (void *)ph.p_vaddr;
+#endif
+      fs_read(fd, load_addr, ph.p_filesz);
+      memset(load_addr + ph.p_filesz, 0, ph.p_memsz - ph.p_filesz);
     }
   }
 
@@ -65,12 +78,17 @@ void context_kload(PCB *pcb, void (*entry)(void *), void *arg) {
 }
 
 void context_uload(PCB *pcb, char *file_name) {
-  AddrSpace as;
   Area kstack;
   uintptr_t entry;
 
+  protect(&pcb->as);
   kstack.start = pcb->stack;
   kstack.end = pcb->stack + STACK_SIZE;
   entry = loader(pcb, file_name);
-  pcb->cp = ucontext(&as, kstack, (void *)entry);
+#ifdef HAS_VME
+  for(int i = 0; i < STACK_SIZE / PGSIZE; i++) {
+    map(&pcb->as, pcb->as.area.end - STACK_SIZE + i*PGSIZE, pcb->stack + i*PGSIZE, MMAP_WRITE | MMAP_READ);
+  }
+#endif
+  pcb->cp = ucontext(&pcb->as, kstack, (void *)entry);
 }

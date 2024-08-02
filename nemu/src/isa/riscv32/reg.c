@@ -31,9 +31,17 @@ const char *csrs[NR_RV_CSR] = {
   [SATP] = "satp",
 };
 
+static int csr_valid[] = {
+  MSTATUS, MTVEC, MEPC, MCAUSE, SATP,
+};
+
 void isa_reg_display() {
   for (int i = 0; i < sizeof(regs)/sizeof(regs[0]); i++) {
     printf("%s\t" FMT_WORD "\t" FMT_WORD_D "\n", reg_name(i), gpr(i), gpr(i));
+  }
+
+  for (int i = 0; i < sizeof(csr_valid)/sizeof(csr_valid[0]); i++) {
+    printf("%s\t" FMT_WORD "\t" FMT_WORD_D "\n", csr_name(csr_valid[i]), csr(csr_valid[i]), csr(csr_valid[i]));
   }
 
   printf("pc\t" FMT_WORD"\n", cpu.pc);

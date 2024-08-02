@@ -29,7 +29,6 @@ bool vme_init(void* (*pgalloc_f)(int), void (*pgfree_f)(void*)) {
   pgfree_usr = pgfree_f;
 
   kas.ptr = pgalloc_f(PGSIZE);
-
   memset(kas.ptr, 0, PGSIZE);
 
   int i;
@@ -104,6 +103,7 @@ void map(AddrSpace *as, void *va, void *pa, int prot) {
   /* in kernel aspace, va=pa, so as->ptr is also pagetable's va */
   assert(as->ptr);
 
+  unsigned long perm = 0;
   unsigned long vaddr = (unsigned long)va, paddr = (unsigned long)pa;
   pte_t *pte = NULL;
 
@@ -114,11 +114,19 @@ void map(AddrSpace *as, void *va, void *pa, int prot) {
     panic("walk error");
   if(*pte & PTE_V)
     panic("mappages: remap");
-  *pte = PA2PTE(paddr) | prot | PTE_V;
+
+  if (prot & MMAP_WRITE)
+    perm |= PTE_W;
+  if (prot & MMAP_READ)
+    perm |= PTE_R;
+  if (prot & MMAP_EXECUTE)
+    perm |= PTE_X;
+
+  *pte = PA2PTE(paddr) | perm | PTE_V;
 
   if (va < as->area.start)
     as->area.start = va;
-  if (va + PGSIZE < as->area.end)
+  if (va + PGSIZE > as->area.end)
     as->area.end = va + PGSIZE;
 }
 
@@ -129,5 +137,7 @@ Context *ucontext(AddrSpace *as, Area kstack, void *entry) {
   // context->gpr[2] = (uintptr_t)context;
   context->mcause = 0xa00001800; // corresponding to difftest
   context->GPRx = (uintptr_t)heap.end; // set stack
+
+  context->pdir = as->ptr;
   return context;
 }
