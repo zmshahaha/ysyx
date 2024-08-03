@@ -120,3 +120,40 @@ kcontext()要求内核线程不能从entry返回, 否则其行为是未定义的
 用户态程序context_uload，用户态调度的时候首先还是从内核栈上恢复上下文，然后跳到start时就设成用户栈了。所以ucontext时候就把GPRx设成用户栈,这是与kcontext不同的地方
 
 用户态程序也要使用内核栈，包括存context，存进入系统调用后的信息。需要了解如何控制sp在内核和用户态正确轮转。当前是初始context在内核栈，其余包括用户态系统调用后的context也是在用户栈
+
+
+这个是navy-apps中设置用户栈指针的代码
+```c
+#elif defined(__riscv)
+  mv s0, zero
+  mv sp, a0
+  jal call_main
+```
+
+用户程序的初始context中a0设置成heap.end
+
+```c
+Context *ucontext(AddrSpace *as, Area kstack, void *entry) {
+  Context *context = (Context *)(kstack.end - sizeof(Context));
+  context->mepc = (uintptr_t)entry;
+  context->gpr[1] = (uintptr_t)NULL; // ra
+  // context->gpr[2] = (uintptr_t)context;
+  context->mcause = 0xa00001800; // corresponding to difftest
+  context->mcause |= (1 << 7);   // set MPIE
+
+#ifdef HAS_VME
+#define USTACK_PAGES 4
+  void *ustack = pgalloc_usr(USTACK_PAGES * PGSIZE);
+  for(int i = 0; i < USTACK_PAGES; i++) {
+    map(as, pcb->as.area.end - USTACK_PAGES * STACK_SIZE + i*PGSIZE, ustack + i*PGSIZE, MMAP_WRITE | MMAP_READ);
+  }
+  context->GPRx = pcb->as.area.end;//这里设置用户栈指针，_start栈指针切到这
+#else
+  context->GPRx = (uintptr_t)heap.end;
+#endif
+
+  context->pdir = as->ptr;
+  return context;
+}
+
+```

@@ -85,10 +85,5 @@ void context_uload(PCB *pcb, char *file_name) {
   kstack.start = pcb->stack;
   kstack.end = pcb->stack + STACK_SIZE;
   entry = loader(pcb, file_name);
-#ifdef HAS_VME
-  for(int i = 0; i < STACK_SIZE / PGSIZE; i++) {
-    map(&pcb->as, pcb->as.area.end - STACK_SIZE + i*PGSIZE, pcb->stack + i*PGSIZE, MMAP_WRITE | MMAP_READ);
-  }
-#endif
   pcb->cp = ucontext(&pcb->as, kstack, (void *)entry);
 }
