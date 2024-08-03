@@ -13,8 +13,18 @@ static Context* (*user_handler)(Event, Context*) = NULL;
 void __am_get_cur_as(Context *c);
 void __am_switch(Context *c);
 
+static uintptr_t mscratch;
 Context* __am_irq_handle(Context *c) {
+  asm volatile("csrr %0, mscratch" : "=r"(mscratch));
+  c->np = (mscratch == 0) ? KERNEL_MODE : USER_MODE;
+  if (c->np == USER_MODE) {
+    c->gpr[2] = mscratch - sizeof(Context);
+  } else {
+    c->gpr[2] = (uintptr_t)c;
+  }
+
   __am_get_cur_as(c);
+
   if (user_handler) {
     Event ev = {0};
     switch (c->mcause) {
@@ -37,7 +47,14 @@ Context* __am_irq_handle(Context *c) {
     c = user_handler(ev, c);
     assert(c != NULL);
   }
+
   __am_switch(c);
+
+  if (c->np == USER_MODE) {
+    mscratch = (uintptr_t)c; // let ksp be the new start of kernel stack
+    asm volatile("csrw mscratch, %0" :: "r"(mscratch));
+  }
+
   return c;
 }
 

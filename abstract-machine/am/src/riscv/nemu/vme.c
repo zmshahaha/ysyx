@@ -137,18 +137,20 @@ Context *ucontext(AddrSpace *as, Area kstack, void *entry) {
   // context->gpr[2] = (uintptr_t)context;
   context->mcause = 0xa00001800; // corresponding to difftest
   context->mcause |= (1 << 7);   // set MPIE
-
+#define HAS_VME
 #ifdef HAS_VME
 #define USTACK_PAGES 4
   void *ustack = pgalloc_usr(USTACK_PAGES * PGSIZE);
   for(int i = 0; i < USTACK_PAGES; i++) {
-    map(as, pcb->as.area.end - USTACK_PAGES * STACK_SIZE + i*PGSIZE, ustack + i*PGSIZE, MMAP_WRITE | MMAP_READ);
+    map(as, as->area.end - USTACK_PAGES * PGSIZE + i*PGSIZE, ustack + i*PGSIZE, MMAP_WRITE | MMAP_READ);
   }
-  context->GPRx = pcb->as.area.end;
+  context->GPRx = (uintptr_t)as->area.end;
+  context->gpr[2] = (uintptr_t)as->area.end - sizeof(Context);
 #else
   context->GPRx = (uintptr_t)heap.end; // set stack
 #endif
 
   context->pdir = as->ptr;
+  context->np = USER_MODE;
   return context;
 }

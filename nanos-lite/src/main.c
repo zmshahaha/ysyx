@@ -30,6 +30,8 @@ int main() {
   Log("Finish initialization");
 
 #ifdef HAS_CTE
+  uint64_t ksp = 0;
+  asm volatile("csrw mscratch, %0" :: "r"(ksp));  // initial ksp
   yield();
 #endif
 

@@ -127,6 +127,7 @@ static void statistic() {
 }
 
 void assert_fail_msg() {
+  print_iringbuf();
   isa_reg_display();
   statistic();
 }

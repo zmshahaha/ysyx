@@ -13,6 +13,9 @@
 #define MMAP_WRITE 0x00000002 // can write
 #define MMAP_EXECUTE 0x00000004 // can execute
 
+#define KERNEL_MODE 1
+#define USER_MODE   2
+
 // Memory area for [@start, @end)
 typedef struct {
   void *start, *end;
