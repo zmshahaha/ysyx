@@ -4,7 +4,9 @@
 
 /* according manual about MCAUSE csr */
 #define ECALL_FROM_M_MODE 11
+#define ECALL_FROM_M_MODE 11
 #define INTR_YIELD -1
+#define IRQ_TIMER 0x8000000000000007  // for riscv64
 
 static Context* (*user_handler)(Event, Context*) = NULL;
 
@@ -26,6 +28,9 @@ Context* __am_irq_handle(Context *c) {
             break;
         }
         c->mepc += 4; break;
+      case IRQ_TIMER:
+        ev.event = EVENT_IRQ_TIMER;
+        break;
       default: ev.event = EVENT_ERROR; break;
     }
 
@@ -55,6 +60,7 @@ Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
   context->gpr[1] = (uintptr_t)NULL; // ra
   // context->gpr[2] = (uintptr_t)context;
   context->mcause = 0xa00001800; // corresponding to difftest
+  context->mcause |= (1 << 7);   // set MPIE
   return context;
 }
 

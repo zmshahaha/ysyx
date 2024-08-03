@@ -30,6 +30,21 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   return csr(MTVEC);
 }
 
+#ifdef CONFIG_RV32
+#define IRQ_TIMER 0x80000007  // for riscv32
+#endif
+#ifdef CONFIG_RV64
+#define IRQ_TIMER 0x8000000000000007  // for riscv64
+#endif
+
+#define MIE (1 << 3)
+#define MPIE (1 << 7)
+
 word_t isa_query_intr() {
+  if ((csr(MSTATUS) & MIE) && (cpu.INTR == true)) {
+    cpu.INTR = false;
+    csr(MSTATUS) |= MPIE;
+    return IRQ_TIMER;
+  }
   return INTR_EMPTY;
 }

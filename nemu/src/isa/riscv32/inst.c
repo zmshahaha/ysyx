@@ -149,7 +149,7 @@ static int decode_exec(Decode *s) {
 
 #define ECALL_FROM_M_MODE 11    /* according manual about MCAUSE csr */
   INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , I, s->dnpc = isa_raise_intr(ECALL_FROM_M_MODE, s->pc));
-  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , R, s->dnpc = csr(MEPC));
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , R, s->dnpc = csr(MEPC); csr(MSTATUS) = ((csr(MSTATUS) & ~(1 << 3)) | (((csr(MSTATUS) >> 7) & 1) << 3) | (1 << 7)));
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
 
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));

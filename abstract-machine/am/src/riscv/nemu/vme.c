@@ -136,6 +136,7 @@ Context *ucontext(AddrSpace *as, Area kstack, void *entry) {
   context->gpr[1] = (uintptr_t)NULL; // ra
   // context->gpr[2] = (uintptr_t)context;
   context->mcause = 0xa00001800; // corresponding to difftest
+  context->mcause |= (1 << 7);   // set MPIE
   context->GPRx = (uintptr_t)heap.end; // set stack
 
   context->pdir = as->ptr;
